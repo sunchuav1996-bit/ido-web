@@ -91,6 +91,9 @@ export const Order: React.FC = () => {
       setIsUploading(true);
 
       const reader = new FileReader();
+      reader.onerror = () => {
+        console.error('FileReader error:', reader.error);
+      };
       reader.onloadend = async () => {
         const base64String = reader.result as string;
 
@@ -113,7 +116,9 @@ export const Order: React.FC = () => {
           });
 
           if (!putResp.ok) {
-            throw new Error(`Upload failed with status ${putResp.status}`);
+            const errorText = await putResp.text();
+            console.error('S3 upload error response:', errorText);
+            throw new Error(`Upload failed with status ${putResp.status}: ${errorText}`);
           }
 
           // Construct public file URL if backend didn't return it

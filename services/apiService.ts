@@ -26,6 +26,12 @@ export const getPresignedUrl = async (fileName: string, fileType: string): Promi
         });
 
         const data = await resp.json();
+
+        // Handle Lambda response format (has statusCode, headers, body)
+        if (data.statusCode && data.body && typeof data.body === 'string') {
+            return JSON.parse(data.body) as PresignResponse;
+        }
+
         return data as PresignResponse;
     } catch (err) {
         return { success: false, error: err instanceof Error ? err.message : 'Network error' };
@@ -55,6 +61,12 @@ export const createOrder = async (payload: CreateOrderRequest): Promise<CreateOr
         });
 
         const data = await resp.json();
+
+        // Handle Lambda response format (has statusCode, headers, body)
+        if (data.statusCode && data.body && typeof data.body === 'string') {
+            return JSON.parse(data.body) as CreateOrderResponse;
+        }
+
         return data as CreateOrderResponse;
     } catch (err) {
         return { success: false, error: err instanceof Error ? err.message : 'Network error' };

@@ -2,8 +2,8 @@
 // POST /create-order
 // Body: { orderDetails, photoS3Key, photoS3Url }
 
-const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 
 const REGION = process.env.AWS_REGION || 'us-east-1';
 const TABLE = process.env.DYNAMODB_TABLE_NAME;
@@ -11,7 +11,7 @@ const TABLE = process.env.DYNAMODB_TABLE_NAME;
 const client = new DynamoDBClient({ region: REGION });
 const docClient = DynamoDBDocumentClient.from(client);
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
     const headers = {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
@@ -20,7 +20,21 @@ exports.handler = async (event) => {
     };
 
     try {
-        const body = JSON.parse(event.body || '{}');
+        // Handle different API Gateway formats
+        let body = {};
+
+        // Check if data is directly in event (HTTP API format)
+        if (event.orderDetails && event.photoS3Key && event.photoS3Url) {
+            body = event;
+        }
+        // Check if data is in event.body (REST API format)
+        else if (event.body) {
+            const bodyString = event.isBase64Encoded
+                ? Buffer.from(event.body, 'base64').toString('utf-8')
+                : event.body;
+            body = typeof bodyString === 'string' ? JSON.parse(bodyString) : bodyString;
+        }
+
         const { orderDetails, photoS3Key, photoS3Url } = body;
         if (!orderDetails || !photoS3Key || !photoS3Url) {
             return {
