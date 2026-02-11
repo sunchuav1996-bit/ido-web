@@ -16,27 +16,27 @@ export const Contact: React.FC = () => {
     email: '',
     message: ''
   });
-  
+
   const [errors, setErrors] = useState<Partial<Record<keyof ContactForm, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<keyof ContactForm, boolean>>>({});
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSent, setIsSent] = useState(false);
 
   const validateField = (name: keyof ContactForm, value: string): string => {
     if (!value.trim()) return 'This field is required';
-    
+
     if (name === 'email') {
-       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-         return 'Please enter a valid email address';
-       }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        return 'Please enter a valid email address';
+      }
     }
-    
+
     if (name === 'phone') {
-       const phoneDigits = value.replace(/\D/g, '');
-       if (phoneDigits.length < 10) return 'Phone number must be at least 10 digits';
+      const phoneDigits = value.replace(/\D/g, '');
+      if (phoneDigits.length < 10) return 'Phone number must be at least 10 digits';
     }
-    
+
     return '';
   };
 
@@ -50,11 +50,11 @@ export const Contact: React.FC = () => {
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Live validation if touched
     if (touched[name as keyof ContactForm]) {
-       const error = validateField(name as keyof ContactForm, value);
-       setErrors(prev => ({ ...prev, [name]: error }));
+      const error = validateField(name as keyof ContactForm, value);
+      setErrors(prev => ({ ...prev, [name]: error }));
     }
   };
 
@@ -71,16 +71,15 @@ export const Contact: React.FC = () => {
     if (!isFormValid) return;
 
     setIsSubmitting(true);
-    
+
     // Simulate API call to database
     setTimeout(() => {
-      console.log('Form submitted to database:', formData);
       setIsSubmitting(false);
       setIsSent(true);
       setFormData({ name: '', phone: '', email: '', message: '' });
       setTouched({});
       setErrors({});
-      
+
       // Reset success message after 5 seconds
       setTimeout(() => setIsSent(false), 5000);
     }, 1500);
@@ -88,11 +87,10 @@ export const Contact: React.FC = () => {
 
   const getInputClassName = (name: keyof ContactForm) => {
     const hasError = touched[name] && errors[name];
-    return `w-full p-4 bg-gray-50 border rounded-lg outline-none transition-all ${
-      hasError 
-        ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200 bg-red-50/50' 
+    return `w-full p-4 bg-gray-50 border rounded-lg outline-none transition-all ${hasError
+        ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200 bg-red-50/50'
         : 'border-gray-200 focus:bg-white focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue'
-    }`;
+      }`;
   };
 
   return (
@@ -105,55 +103,55 @@ export const Contact: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
-        
+
         {/* Left Column - Contact Info */}
         <div className="space-y-10">
           <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 h-full flex flex-col justify-between">
-             <div>
-                <h3 className="text-2xl font-semibold text-brand-dark mb-8">Contact Information</h3>
-                
-                <div className="space-y-8">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-brand-blue/10 rounded-full shrink-0">
-                        <MapPin className="w-6 h-6 text-brand-blue" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-brand-dark text-lg">Our Studio</h4>
-                        <p className="text-brand-lightText mt-1 leading-relaxed">
-                          98, Kota Nagar, Vidi Gharkul,<br />
-                          Hyd Road, Solapur 413006
-                        </p>
-                      </div>
-                    </div>
+            <div>
+              <h3 className="text-2xl font-semibold text-brand-dark mb-8">Contact Information</h3>
 
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-brand-blue/10 rounded-full shrink-0">
-                        <Mail className="w-6 h-6 text-brand-blue" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-brand-dark text-lg">Email Us</h4>
-                        <p className="text-brand-lightText mt-1">
-                          care@idoforyou.in
-                        </p>
-                      </div>
-                    </div>
+              <div className="space-y-8">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-brand-blue/10 rounded-full shrink-0">
+                    <MapPin className="w-6 h-6 text-brand-blue" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-brand-dark text-lg">Our Studio</h4>
+                    <p className="text-brand-lightText mt-1 leading-relaxed">
+                      98, Kota Nagar, Vidi Gharkul,<br />
+                      Hyd Road, Solapur 413006
+                    </p>
+                  </div>
                 </div>
-             </div>
 
-             <div className="mt-12 pt-8 border-t border-gray-100">
-               <h4 className="font-medium text-brand-dark mb-4">Follow us on Instagram</h4>
-               <div className="flex gap-4">
-                  <a 
-                    href="https://instagram.com" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-brand-lightText hover:text-white hover:bg-gradient-to-tr hover:from-[#fdf497] hover:via-[#fd5949] hover:to-[#d6249f] transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-1"
-                    title="Follow us on Instagram"
-                  >
-                    <Instagram className="w-6 h-6" />
-                  </a>
-               </div>
-             </div>
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-brand-blue/10 rounded-full shrink-0">
+                    <Mail className="w-6 h-6 text-brand-blue" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-brand-dark text-lg">Email Us</h4>
+                    <p className="text-brand-lightText mt-1">
+                      care@idoforyou.in
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-12 pt-8 border-t border-gray-100">
+              <h4 className="font-medium text-brand-dark mb-4">Follow us on Instagram</h4>
+              <div className="flex gap-4">
+                <a
+                  href="https://instagram.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-brand-lightText hover:text-white hover:bg-gradient-to-tr hover:from-[#fdf497] hover:via-[#fd5949] hover:to-[#d6249f] transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-1"
+                  title="Follow us on Instagram"
+                >
+                  <Instagram className="w-6 h-6" />
+                </a>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -174,8 +172,8 @@ export const Contact: React.FC = () => {
                 <p className="text-brand-lightText max-w-xs mx-auto leading-relaxed">
                   Thank you for reaching out. We will review your message and get back to you shortly.
                 </p>
-                <button 
-                  onClick={() => setIsSent(false)} 
+                <button
+                  onClick={() => setIsSent(false)}
                   className="mt-8 text-brand-blue hover:text-brand-blueHover font-medium flex items-center gap-2 transition-colors"
                 >
                   <Send className="w-4 h-4" />
@@ -186,8 +184,8 @@ export const Contact: React.FC = () => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label className="text-sm font-medium text-brand-dark block mb-2">Full Name <span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     name="name"
                     placeholder="Enter your name"
                     className={getInputClassName('name')}
@@ -197,7 +195,7 @@ export const Contact: React.FC = () => {
                   />
                   {touched.name && errors.name && (
                     <p className="text-xs text-red-500 flex items-center gap-1 mt-2 animate-fade-in">
-                        <AlertCircle className="w-3 h-3" /> {errors.name}
+                      <AlertCircle className="w-3 h-3" /> {errors.name}
                     </p>
                   )}
                 </div>
@@ -205,8 +203,8 @@ export const Contact: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="text-sm font-medium text-brand-dark block mb-2">Phone Number <span className="text-red-500">*</span></label>
-                    <input 
-                      type="tel" 
+                    <input
+                      type="tel"
                       name="phone"
                       placeholder="Enter phone number"
                       className={getInputClassName('phone')}
@@ -215,15 +213,15 @@ export const Contact: React.FC = () => {
                       onBlur={handleBlur}
                     />
                     {touched.phone && errors.phone && (
-                        <p className="text-xs text-red-500 flex items-center gap-1 mt-2 animate-fade-in">
-                            <AlertCircle className="w-3 h-3" /> {errors.phone}
-                        </p>
+                      <p className="text-xs text-red-500 flex items-center gap-1 mt-2 animate-fade-in">
+                        <AlertCircle className="w-3 h-3" /> {errors.phone}
+                      </p>
                     )}
                   </div>
                   <div>
                     <label className="text-sm font-medium text-brand-dark block mb-2">Email Address <span className="text-red-500">*</span></label>
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       name="email"
                       placeholder="Enter email address"
                       className={getInputClassName('email')}
@@ -232,16 +230,16 @@ export const Contact: React.FC = () => {
                       onBlur={handleBlur}
                     />
                     {touched.email && errors.email && (
-                        <p className="text-xs text-red-500 flex items-center gap-1 mt-2 animate-fade-in">
-                            <AlertCircle className="w-3 h-3" /> {errors.email}
-                        </p>
+                      <p className="text-xs text-red-500 flex items-center gap-1 mt-2 animate-fade-in">
+                        <AlertCircle className="w-3 h-3" /> {errors.email}
+                      </p>
                     )}
                   </div>
                 </div>
 
                 <div>
                   <label className="text-sm font-medium text-brand-dark block mb-2">Message <span className="text-red-500">*</span></label>
-                  <textarea 
+                  <textarea
                     name="message"
                     placeholder="How can we help you?"
                     rows={4}
@@ -251,16 +249,16 @@ export const Contact: React.FC = () => {
                     onBlur={handleBlur}
                     style={{ resize: 'none' }}
                   />
-                   {touched.message && errors.message && (
-                        <p className="text-xs text-red-500 flex items-center gap-1 mt-2 animate-fade-in">
-                            <AlertCircle className="w-3 h-3" /> {errors.message}
-                        </p>
-                    )}
+                  {touched.message && errors.message && (
+                    <p className="text-xs text-red-500 flex items-center gap-1 mt-2 animate-fade-in">
+                      <AlertCircle className="w-3 h-3" /> {errors.message}
+                    </p>
+                  )}
                 </div>
 
-                <Button 
-                  fullWidth 
-                  type="submit" 
+                <Button
+                  fullWidth
+                  type="submit"
                   disabled={!isFormValid || isSubmitting}
                   className={`flex items-center justify-center gap-2 transition-all ${!isFormValid ? 'opacity-50 cursor-not-allowed' : ''}`}
                   title={!isFormValid ? "Please fill all required fields correctly" : ""}

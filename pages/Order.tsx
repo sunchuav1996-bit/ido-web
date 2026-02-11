@@ -4,6 +4,7 @@ import { Button } from '../components/Button';
 import { OrderForm, UploadedFile } from '../types';
 import { validateFile } from '../utilities/fileValidation';
 import { getPresignedUrl, createOrder } from '../services/apiService';
+import { validateImageWithFallback } from '../services/imageValidationService';
 import { showSuccess, showError } from '../utilities/notifications';
 
 export const Order: React.FC = () => {
@@ -23,7 +24,11 @@ export const Order: React.FC = () => {
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isValidating, setIsValidating] = useState(false);
+  const [imageValidationErrors, setImageValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationPassed, setValidationPassed] = useState(false);
 
   const validateField = (name: keyof OrderForm, value: string): string => {
 
@@ -87,58 +92,114 @@ export const Order: React.FC = () => {
         return;
       }
 
-      // Start upload flow using presigned URL from backend
-      setIsUploading(true);
-
+      // First validate the image
+      setIsValidating(true);
       const reader = new FileReader();
       reader.onerror = () => {
-        console.error('FileReader error:', reader.error);
+        setIsValidating(false);
       };
       reader.onloadend = async () => {
         const base64String = reader.result as string;
 
-        // Get presigned URL from backend (Lambda)
-        const presign = await getPresignedUrl(file.name, file.type);
-        if (!presign.success || !presign.url || !presign.key) {
-          showError(presign.error || 'Failed to get upload URL');
-          setIsUploading(false);
-          return;
-        }
+        // Create image element for validation
+        const img = new Image();
+        img.onload = async () => {
+          try {
+            // Validate image BEFORE uploading to save API calls
+            const validationResult = await validateImageWithFallback(img);
 
-        try {
-          // Upload file directly to S3 using the presigned URL
-          const putResp = await fetch(presign.url, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': file.type
-            },
-            body: file
-          });
+            setImageValidationErrors(validationResult.errors);
 
-          if (!putResp.ok) {
-            const errorText = await putResp.text();
-            console.error('S3 upload error response:', errorText);
-            throw new Error(`Upload failed with status ${putResp.status}: ${errorText}`);
+            if (!validationResult.isValid) {
+              showError(`Photo validation failed: ${validationResult.errors.join('. ')}`, 7000);
+              setIsValidating(false);
+              setValidationPassed(false);
+              return;
+            }
+
+            // Image passed validation!
+            setValidationPassed(true);
+            setIsValidating(false);
+            setIsUploading(true);
+            setUploadProgress(0);
+
+            // Get presigned URL from backend (Lambda)
+            const presign = await getPresignedUrl(file.name, file.type);
+            if (!presign.success || !presign.url || !presign.key) {
+              showError(presign.error || 'Failed to get upload URL');
+              setIsUploading(false);
+              setUploadProgress(0);
+              return;
+            }
+
+            try {
+              // Upload file directly to S3 using XMLHttpRequest to track progress
+              await new Promise<void>((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+
+                // Track upload progress
+                xhr.upload.addEventListener('progress', (event) => {
+                  if (event.lengthComputable) {
+                    const percentComplete = Math.round((event.loaded / event.total) * 100);
+                    setUploadProgress(percentComplete);
+                  }
+                });
+
+                // Handle completion
+                xhr.addEventListener('load', () => {
+                  if (xhr.status >= 200 && xhr.status < 300) {
+                    setUploadProgress(100);
+                    resolve();
+                  } else {
+                    console.error('S3 upload error response:', xhr.responseText);
+                    reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.responseText}`));
+                  }
+                });
+
+                // Handle errors
+                xhr.addEventListener('error', () => {
+                  reject(new Error('Network error during upload'));
+                });
+
+                xhr.addEventListener('abort', () => {
+                  reject(new Error('Upload was aborted'));
+                });
+
+                // Configure and send request
+                xhr.open('PUT', presign.url);
+                xhr.setRequestHeader('Content-Type', file.type);
+                xhr.send(file);
+              });
+
+              // Construct public file URL if backend didn't return it
+              const bucket = process.env.REACT_APP_S3_BUCKET_NAME;
+              const region = process.env.REACT_APP_AWS_REGION;
+              const fileUrl = presign.fileUrl || `https://${bucket}.s3.${region}.amazonaws.com/${presign.key}`;
+
+              setUploadedFile({
+                file,
+                previewUrl: base64String,
+                s3Url: fileUrl,
+                s3Key: presign.key
+              });
+
+              showSuccess('Photo validated and uploaded successfully!');
+            } catch (err) {
+              showError(err instanceof Error ? err.message : 'Upload failed');
+            } finally {
+              setIsUploading(false);
+              setUploadProgress(0);
+            }
+          } catch (error) {
+            showError('Failed to validate image. Please try again.', 5000);
+            setIsValidating(false);
           }
-
-          // Construct public file URL if backend didn't return it
-          const bucket = process.env.REACT_APP_S3_BUCKET_NAME;
-          const region = process.env.REACT_APP_AWS_REGION;
-          const fileUrl = presign.fileUrl || `https://${bucket}.s3.${region}.amazonaws.com/${presign.key}`;
-
-          setUploadedFile({
-            file,
-            previewUrl: base64String,
-            s3Url: fileUrl,
-            s3Key: presign.key
-          });
-
-          showSuccess('Photo uploaded successfully!');
-        } catch (err) {
-          showError(err instanceof Error ? err.message : 'Upload failed');
-        } finally {
-          setIsUploading(false);
-        }
+        };
+        img.onerror = () => {
+          showError('Failed to process image. Please try a different file.', 5000);
+          setIsValidating(false);
+        };
+        img.src = base64String;
       };
 
       reader.readAsDataURL(file);
@@ -148,6 +209,9 @@ export const Order: React.FC = () => {
   const handleRemoveFile = (e: React.MouseEvent) => {
     e.stopPropagation();
     setUploadedFile(null);
+    setImageValidationErrors([]);
+    setValidationPassed(false);
+    setUploadProgress(0);
     // Reset file input so same file can be selected again if needed
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -220,7 +284,6 @@ export const Order: React.FC = () => {
       }
     } catch (error) {
       showError('An error occurred while processing your order');
-      console.error('Order submission error:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -260,8 +323,8 @@ export const Order: React.FC = () => {
             </p>
 
             <div
-              className={`border-2 border-dashed rounded-xl p-6 sm:p-10 flex flex-col items-center justify-center text-center transition-colors relative min-h-[300px] ${uploadedFile ? 'border-brand-blue bg-blue-50/5' : 'border-gray-200 hover:border-brand-blue/50 hover:bg-gray-50 cursor-pointer'} ${isUploading ? 'opacity-70' : ''}`}
-              onClick={!uploadedFile && !isUploading ? triggerFileUpload : undefined}
+              className={`border-2 border-dashed rounded-xl p-6 sm:p-10 flex flex-col items-center justify-center text-center transition-colors relative min-h-[300px] ${uploadedFile ? 'border-brand-blue bg-blue-50/5' : 'border-gray-200 hover:border-brand-blue/50 hover:bg-gray-50 cursor-pointer'} ${isUploading || isValidating ? 'opacity-70' : ''}`}
+              onClick={!uploadedFile && !isUploading && !isValidating ? triggerFileUpload : undefined}
             >
               <input
                 type="file"
@@ -271,13 +334,27 @@ export const Order: React.FC = () => {
                 accept="image/*"
               />
 
-              {isUploading ? (
-                <div className="flex flex-col items-center justify-center animate-fade-in">
+              {isUploading || isValidating ? (
+                <div className="flex flex-col items-center justify-center animate-fade-in w-full px-8">
                   <div className="bg-brand-blue/10 p-4 rounded-full mb-4 animate-pulse">
                     <Loader className="w-8 h-8 text-brand-blue animate-spin" />
                   </div>
-                  <h4 className="text-brand-blue font-semibold mb-1">Uploading Photo...</h4>
-                  <p className="text-xs text-brand-lightText">Please wait while we upload your photo to S3</p>
+                  <h4 className="text-brand-blue font-semibold mb-1">{isValidating ? 'Processing Photo...' : 'Uploading Photo...'}</h4>
+                  <p className="text-xs text-brand-lightText mb-3">{isValidating ? 'Preparing your photo' : 'Uploading to S3'}</p>
+
+                  {isUploading && (
+                    <div className="w-full max-w-md">
+                      <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="absolute top-0 left-0 h-full bg-gradient-to-r from-brand-blue to-blue-500 transition-all duration-300 ease-out"
+                          style={{ width: `${uploadProgress}%` }}
+                        >
+                          <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                        </div>
+                      </div>
+                      <p className="text-center text-sm font-medium text-brand-blue mt-2">{uploadProgress}%</p>
+                    </div>
+                  )}
                 </div>
               ) : uploadedFile ? (
                 <div className="relative w-full h-full flex flex-col items-center justify-center animate-fade-in">
@@ -309,6 +386,32 @@ export const Order: React.FC = () => {
                     <RefreshCw className="w-4 h-4" />
                     Replace Photo
                   </button>
+
+                  {/* Validation Status */}
+                  {isValidating && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm text-brand-blue animate-pulse">
+                      <Loader className="w-4 h-4 animate-spin" />
+                      <span>Analyzing photo quality and content...</span>
+                    </div>
+                  )}
+
+                  {!isValidating && imageValidationErrors.length > 0 && (
+                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      {imageValidationErrors.map((error, idx) => (
+                        <p key={idx} className="flex items-start gap-2 text-sm text-red-700 mb-1 last:mb-0">
+                          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          <span>{error}</span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {!isValidating && uploadedFile && imageValidationErrors.length === 0 && (
+                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 flex items-center gap-2">
+                      <span>✓</span>
+                      <span>Photo uploaded successfully! Ready for 3D statue creation.</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
