@@ -353,7 +353,250 @@ aws apigatewayv2 create-route \
 
 ---
 
-## Step 6: Configure Frontend
+## Step 6.5: Comprehensive Security Configuration (Production)
+
+This application uses **public API endpoints with strict backend validation** for security. No API keys are stored in the frontend.
+
+### 1️⃣ STRICT LAMBDA VALIDATION (Critical Security Layer)
+
+Both Lambda functions include comprehensive validation:
+
+**Presign Lambda** validates:
+- ✅ Filename length ≤ 255 characters
+- ✅ Only allowed MIME types (JPEG, PNG, GIF, WebP)
+- ✅ No path traversal attempts (`..`, `/`, `\`)
+- ✅ 5-minute presigned URL expiry
+- ✅ Max file size: 10MB
+
+**CreateOrder Lambda** validates:
+- ✅ All required fields present (fullName, email, phone, address, city, state, zipCode)
+- ✅ No unknown fields accepted
+- ✅ Field length limits (name ≤ 100, email ≤ 254, etc.)
+- ✅ Email format validation (regex)
+- ✅ Phone number ≥ 10 digits
+- ✅ S3 key matches expected pattern (no path traversal)
+- ✅ Payload size ≤ 10KB
+- ✅ Status forced to `PENDING` server-side (client cannot override)
+
+**Via AWS Console:**
+1. Go to **Lambda** → **ido-presign** → **Code**
+2. Code already includes validation (see file content)
+3. Go to **Lambda** → **ido-create-order** → **Code**
+4. Code already includes validation
+
+**Via AWS CLI (deployments):**
+```bash
+# Redeploy presign Lambda with new validation
+cd lambda/presign
+npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+zip -r ../../presign.zip index.js node_modules/
+aws lambda update-function-code \
+  --function-name ido-presign \
+  --zip-file fileb://../../presign.zip
+
+# Redeploy createOrder Lambda with new validation
+cd ../createOrder
+npm install @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
+zip -r ../../createorder.zip index.js node_modules/
+aws lambda update-function-code \
+  --function-name ido-create-order \
+  --zip-file fileb://../../createorder.zip
+```
+
+### 2️⃣ API GATEWAY THROTTLING (Block Spam & DDoS)
+
+Prevents request floods and abuse attempts.
+
+**Via AWS Console:**
+
+For HTTP API:
+1. Go to **API Gateway** → **ido-api-dev** → **Throttle Settings**
+2. Set:
+   - **Rate Limit**: 10 requests/second
+   - **Burst Limit**: 20 requests
+3. Click **Save**
+
+For REST API:
+1. Go to **API Gateway** → **Usage Plans** → **Create Usage Plan**
+2. Name: `ido-usage-plan-dev`
+3. Set:
+   - **Rate**: 10 requests/sec
+   - **Burst**: 20 requests
+4. Click **Create**
+5. Add API stage to the plan
+
+**Via AWS CLI:**
+
+```bash
+# Get API ID
+API_ID=$(aws apigatewayv2 get-apis --query 'Items[0].ApiId' --output text)
+
+# Set throttle settings
+aws apigatewayv2 update-stage \
+  --api-id $API_ID \
+  --stage-name dev \
+  --throttle-settings BurstLimit=20,RateLimit=10
+```
+
+### 3️⃣ AWS WAF - RATE-BASED RULE (Auto-Block Attackers) skipping for cost cutting 
+
+Automatically blocks IPs making excessive requests.
+
+**Via AWS Console:**
+
+1. Go to **WAF & Shield** → **Web ACLs** → **Create web ACL**
+2. Name: `ido-waf`
+3. Region: **us-east-1**
+4. Click **Next**
+
+5. **Add rules** → **Add my own rules and rule groups**
+6. **Rule type**: Select **Rate-based rule**
+7. Configure:
+   - **Name**: `RateLimitRule`
+   - **Rate limit**: 100 requests in 5 minutes
+   - **Action**: **Block**
+8. Click **Add rule**
+
+9. Click **Next** → **Next** → **Create web ACL**
+
+10. Go to **API Gateway** → **ido-api-dev** → **Settings**
+11. Under **WAF association**, select the WAF created above
+
+**Via AWS CLI:**
+
+```bash
+# Create IP set for rate limiting
+IP_SET=$(aws wafv2 create-ip-set \
+  --name ido-rate-limit-set \
+  --scope REGIONAL \
+  --ip-address-version IPV4 \
+  --addresses [] \
+  --region us-east-1 \
+  --query 'Summary.Id' \
+  --output text)
+
+# Create rate-based rule
+RULE=$(aws wafv2 create-web-acl \
+  --name ido-waf \
+  --scope REGIONAL \
+  --default-action Block={} \
+  --rules '[
+    {
+      "Name": "RateLimitRule",
+      "Priority": 1,
+      "Statement": {
+        "RateBasedStatement": {
+          "Limit": 2000,
+          "AggregateKeyType": "IP"
+        }
+      },
+      "Action": {"Block": {}},
+      "VisibilityConfig": {
+        "SampledRequestsEnabled": true,
+        "CloudWatchMetricsEnabled": true,
+        "MetricName": "RateLimitRule"
+      }
+    }
+  ]' \
+  --visibility-config \
+    SampledRequestsEnabled=true,CloudWatchMetricsEnabled=true,MetricName=ido-waf \
+  --region us-east-1)
+
+echo "WAF Web ACL created: $RULE"
+
+# Associate with API Gateway (requires API ARN)
+API_ARN="arn:aws:apigateway:us-east-1::/apis/ido-api-dev"
+aws wafv2 associate-web-acl \
+  --web-acl-arn $RULE \
+  --resource-arn $API_ARN \
+  --region us-east-1
+```
+
+### 4️⃣ S3 PRESIGNED URLS - SHORT EXPIRY (Limits Exposure)
+
+Already configured in Lambda - 5 minute expiry on all presigned URLs.
+
+**Why this is secure:**
+- URLs are single-use
+- Expire in 5 minutes
+- Can't be reused after expiration
+- Even if URL is leaked, window is small
+
+### 5️⃣ CORS RESTRICTIONS (Prevent Cross-Origin Abuse)
+
+Already configured. S3 only accepts PUT requests from allowed origins.
+
+**Current configuration:**
+```json
+{
+  "CORSRules": [
+    {
+      "AllowedHeaders": ["*"],
+      "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD"],
+      "AllowedOrigins": [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://your-domain.com"
+      ],
+      "ExposeHeaders": ["ETag", "x-amz-version-id"],
+      "MaxAgeSeconds": 3000
+    }
+  ]
+}
+```
+
+**Update for production:**
+```bash
+aws s3api put-bucket-cors --bucket ido-web-uploads --cors-configuration '{
+  "CORSRules": [
+    {
+      "AllowedHeaders": ["Content-Type"],
+      "AllowedMethods": ["GET", "PUT"],
+      "AllowedOrigins": ["https://your-production-domain.com"],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 3000
+    }
+  ]
+}'
+```
+
+### 6️⃣ ENABLE LOGGING & MONITORING
+
+**API Gateway Logs:**
+```bash
+# Create CloudWatch Log Group
+aws logs create-log-group --log-group-name /aws/apigateway/ido-api
+
+# Enable logging for API Gateway stage
+aws apigatewayv2 update-stage \
+  --api-id $API_ID \
+  --stage-name dev \
+  --access-log-settings '{"DestinationArn":"arn:aws:logs:us-east-1:ACCOUNT_ID:log-group:/aws/apigateway/ido-api","Format":"$context.requestId $context.error.message"}'
+```
+
+**View logs:**
+```bash
+aws logs tail /aws/apigateway/ido-api --follow
+aws logs tail /aws/lambda/ido-presign --follow
+aws logs tail /aws/lambda/ido-create-order --follow
+```
+
+### 7️⃣ SECURITY CHECKLIST FOR PRODUCTION
+
+- [ ] Redeploy Lambda functions with validation code
+- [ ] Enable API Gateway throttling (10 req/sec, 20 burst)
+- [ ] Deploy AWS WAF with rate-based rule (100 req/5min)
+- [ ] Restrict S3 CORS to production domain only
+- [ ] Enable CloudWatch logging
+- [ ] Test with invalid payloads to verify rejection
+- [ ] Monitor CloudWatch logs for attack patterns
+- [ ] Set up CloudWatch alarms for WAF blocks
+- [ ] Document security settings in runbook
+
+---
+
+## Step 6 (Updated): Configure Frontend
 
 Create or update `.env.local`:
 
@@ -366,8 +609,6 @@ REACT_APP_DYNAMODB_TABLE_NAME=ido-orders
 # API Gateway base URL from Step 5
 REACT_APP_API_BASE_URL=https://xxxxx.execute-api.us-east-1.amazonaws.com/dev
 
-# Other configs
-GEMINI_API_KEY=your_gemini_api_key
 ```
 
 ---

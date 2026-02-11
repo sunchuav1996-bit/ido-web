@@ -11,8 +11,6 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       // Expose only non-secret environment variables to the client
       'process.env.REACT_APP_AWS_REGION': JSON.stringify(env.REACT_APP_AWS_REGION),
       'process.env.REACT_APP_S3_BUCKET_NAME': JSON.stringify(env.REACT_APP_S3_BUCKET_NAME),
