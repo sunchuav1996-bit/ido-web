@@ -6,9 +6,11 @@ import { Model3DViewer } from '../components/Model3DViewer';
 
 export const Home: React.FC = () => {
   const [modelLoaded, setModelLoaded] = React.useState(false);
+  const [isModelLoading, setIsModelLoading] = React.useState(true);
 
   const handleModelLoaded = React.useCallback(() => {
     setModelLoaded(true);
+    setIsModelLoading(false);
   }, []);
 
   return (
@@ -62,11 +64,13 @@ export const Home: React.FC = () => {
                 onModelLoaded={handleModelLoaded}
               />
             </div>
-            <img
-              src="/models/anand.png"
-              alt="3D Cartoon Statue Preview"
-              className={modelLoaded ? 'w-full h-full object-contain rounded-2xl opacity-0 transition-opacity duration-300' : 'w-full h-full object-contain rounded-2xl opacity-100 transition-opacity duration-300'}
-            />
+            {!isModelLoading && (
+              <img
+                src="/models/anand.png"
+                alt="3D Cartoon Statue Preview"
+                className={modelLoaded ? 'w-full h-full object-contain rounded-2xl opacity-0 transition-opacity duration-300' : 'w-full h-full object-contain rounded-2xl opacity-100 transition-opacity duration-300'}
+              />
+            )}
           </div>
         </div>
         {/* Decorative Blob */}
