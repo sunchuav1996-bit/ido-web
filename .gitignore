@@ -1,0 +1,60 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+dist
+dist-ssr
+build
+.cache
+
+# Environment variables (keep .env.production for deployment)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing
+coverage
+*.lcov
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+
+# OS
+Thumbs.db
+
+# Lambda deployment packages
+lambda/**/*.zip
+lambda/**/node_modules
+
+# GitHub Pages
+.gh-pages
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Debug
+debug.log
