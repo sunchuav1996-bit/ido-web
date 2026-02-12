@@ -6,6 +6,8 @@ interface Model3DViewerProps {
     modelPath: string;
     autoRotate?: boolean;
     onModelLoaded?: () => void;
+    onModelLoadingTimeout?: () => void;
+    loadingTimeoutMs?: number;
 }
 
 const Model: React.FC<{ path: string; onLoad: () => void }> = ({ path, onLoad }) => {
@@ -49,11 +51,33 @@ class ModelErrorBoundary extends React.Component<
 export const Model3DViewer: React.FC<Model3DViewerProps> = ({
     modelPath,
     autoRotate = true,
-    onModelLoaded
+    onModelLoaded,
+    onModelLoadingTimeout,
+    loadingTimeoutMs = 5000
 }) => {
     const [modelError, setModelError] = useState(false);
+    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+    React.useEffect(() => {
+        // Set timeout for loading - if model doesn't load within timeout, trigger fallback
+        timeoutRef.current = setTimeout(() => {
+            if (onModelLoadingTimeout) {
+                onModelLoadingTimeout();
+            }
+        }, loadingTimeoutMs);
+
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, [loadingTimeoutMs, onModelLoadingTimeout]);
 
     const handleModelLoad = React.useCallback(() => {
+        // Clear the timeout when model successfully loads
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
         if (onModelLoaded) {
             onModelLoaded();
         }

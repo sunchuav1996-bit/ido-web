@@ -5,12 +5,22 @@ import { Button } from '../components/Button';
 import { Model3DViewer } from '../components/Model3DViewer';
 
 export const Home: React.FC = () => {
-  const [modelLoaded, setModelLoaded] = React.useState(false);
-  const [isModelLoading, setIsModelLoading] = React.useState(true);
+  const [showImageFallback, setShowImageFallback] = React.useState(false);
+  const [didTimeout, setDidTimeout] = React.useState(false);
+  const [showLoadingOverlay, setShowLoadingOverlay] = React.useState(true);
 
   const handleModelLoaded = React.useCallback(() => {
-    setModelLoaded(true);
-    setIsModelLoading(false);
+    if (didTimeout) {
+      return;
+    }
+    setShowLoadingOverlay(false);
+  }, [didTimeout]);
+
+  const handleModelLoadingTimeout = React.useCallback(() => {
+    // If model takes too long to load, show image instead
+    setShowImageFallback(true);
+    setDidTimeout(true);
+    setShowLoadingOverlay(false);
   }, []);
 
   return (
@@ -57,18 +67,25 @@ export const Home: React.FC = () => {
       <div className="flex-1 relative w-full flex justify-center lg:justify-end mt-12 lg:mt-0">
         <div className="relative z-10 w-full max-w-[720px] aspect-[3/4] flex justify-center items-center">
           <div className="relative w-full h-full rounded-2xl overflow-hidden">
-            <div className={modelLoaded ? 'absolute inset-0 opacity-100 transition-opacity duration-300' : 'absolute inset-0 opacity-0 pointer-events-none transition-opacity duration-300'}>
-              <Model3DViewer
-                modelPath="/models/anand.glb"
-                autoRotate={true}
-                onModelLoaded={handleModelLoaded}
-              />
+            {!showImageFallback && (
+              <div className="absolute inset-0">
+                <Model3DViewer
+                  modelPath="/models/anand.glb"
+                  autoRotate={true}
+                  onModelLoaded={handleModelLoaded}
+                  onModelLoadingTimeout={handleModelLoadingTimeout}
+                  loadingTimeoutMs={5000}
+                />
+              </div>
+            )}
+            <div className={showLoadingOverlay ? 'absolute inset-0 flex items-center justify-center bg-transparent transition-opacity duration-300' : 'absolute inset-0 opacity-0 pointer-events-none transition-opacity duration-300'}>
+              <div className="w-10 h-10 rounded-full border-4 border-brand-blue/20 border-t-brand-blue animate-spin" />
             </div>
-            {!isModelLoading && (
+            {showImageFallback && (
               <img
                 src="/models/anand.png"
                 alt="3D Cartoon Statue Preview"
-                className={modelLoaded ? 'w-full h-full object-contain rounded-2xl opacity-0 transition-opacity duration-300' : 'w-full h-full object-contain rounded-2xl opacity-100 transition-opacity duration-300'}
+                className="w-full h-full object-contain rounded-2xl"
               />
             )}
           </div>
