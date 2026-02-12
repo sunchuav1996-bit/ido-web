@@ -5,7 +5,17 @@ import { Button } from '../components/Button';
 import { Model3DViewer } from '../components/Model3DViewer';
 
 export const Home: React.FC = () => {
-  const [show3D, setShow3D] = React.useState(false);
+  const [modelLoaded, setModelLoaded] = React.useState(false);
+
+  // Automatically load 3D model in background
+  React.useEffect(() => {
+    // Start loading the model after a short delay
+    const timer = setTimeout(() => {
+      setModelLoaded(true);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-20 pt-8 lg:pt-16 pb-20 min-h-[calc(100vh-140px)]">
@@ -50,21 +60,19 @@ export const Home: React.FC = () => {
       {/* Right Content - Images */}
       <div className="flex-1 relative w-full flex justify-center lg:justify-end mt-12 lg:mt-0">
         <div className="relative z-10 w-full max-w-[600px] aspect-[3/4] flex justify-center items-center">
-          {show3D ? (
+          {modelLoaded ? (
             <Model3DViewer
               modelPath="/models/anand.glb"
-              autoRotate={true}
+              autoRotate={false}
             />
           ) : (
-            <div
-              className="relative w-full h-full bg-gradient-to-br from-brand-blue/5 to-purple-50 rounded-2xl flex items-center justify-center cursor-pointer hover:scale-105 transition-transform group"
-              onClick={() => setShow3D(true)}
-            >
-              <div className="text-center p-8">
-                <div className="text-8xl mb-4 group-hover:scale-110 transition-transform">🎭</div>
-                <p className="text-brand-text text-xl font-semibold mb-2">Click to View 3D Model</p>
-                <p className="text-brand-lightText text-sm">Interactive 360° preview</p>
-              </div>
+            <div className="relative w-full h-full rounded-2xl overflow-hidden">
+              {/* Static Image - fits within frame */}
+              <img
+                src="/models/anand.png"
+                alt="3D Cartoon Statue Preview"
+                className="w-full h-full object-contain rounded-2xl"
+              />
             </div>
           )}
         </div>
