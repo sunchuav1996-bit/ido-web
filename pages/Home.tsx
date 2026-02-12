@@ -6,7 +6,7 @@ import { Model3DViewer } from '../components/Model3DViewer';
 
 export const Home: React.FC = () => {
   const [show3D, setShow3D] = React.useState(false);
-  
+
   return (
     <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-20 pt-8 lg:pt-16 pb-20 min-h-[calc(100vh-140px)]">
 
@@ -56,7 +56,7 @@ export const Home: React.FC = () => {
               autoRotate={true}
             />
           ) : (
-            <div 
+            <div
               className="relative w-full h-full bg-gradient-to-br from-brand-blue/5 to-purple-50 rounded-2xl flex items-center justify-center cursor-pointer hover:scale-105 transition-transform group"
               onClick={() => setShow3D(true)}
             >
