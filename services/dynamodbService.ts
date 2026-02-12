@@ -162,3 +162,61 @@ export const getOrdersByEmail = async (
         };
     }
 };
+
+// Contact Messages Table Interface
+export interface ContactMessage {
+    messageId: string;
+    name: string;
+    email: string;
+    phone: string;
+    message: string;
+    createdAt: string;
+    status: 'new' | 'read' | 'replied';
+}
+
+/**
+ * Save contact message to DynamoDB
+ * @param name - Sender's name
+ * @param email - Sender's email
+ * @param phone - Sender's phone
+ * @param message - Message content
+ * @returns Promise with success status and message ID
+ */
+export const saveContactMessage = async (
+    name: string,
+    email: string,
+    phone: string,
+    message: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> => {
+    try {
+        const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const createdAt = new Date().toISOString();
+        const tableName = process.env.REACT_APP_CONTACT_MESSAGES_TABLE || 'ido-contact-messages';
+
+        const command = new PutCommand({
+            TableName: tableName,
+            Item: {
+                messageId,
+                name,
+                email,
+                phone,
+                message,
+                createdAt,
+                status: 'new'
+            }
+        });
+
+        await docClient.send(command);
+
+        return {
+            success: true,
+            messageId
+        };
+    } catch (error) {
+        console.error('DynamoDB Contact Message Error:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to save message'
+        };
+    }
+};

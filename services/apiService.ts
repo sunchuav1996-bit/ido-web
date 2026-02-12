@@ -72,3 +72,56 @@ export const createOrder = async (payload: CreateOrderRequest): Promise<CreateOr
         return { success: false, error: err instanceof Error ? err.message : 'Network error' };
     }
 };
+
+export interface ContactMessageRequest {
+    name: string;
+    email: string;
+    phone: string;
+    message: string;
+}
+
+export interface ContactMessageResponse {
+    success: boolean;
+    messageId?: string;
+    message?: string;
+    error?: string;
+}
+
+/**
+ * Submit contact message via API Gateway → Lambda → DynamoDB
+ * (Do NOT call DynamoDB directly from browser)
+ * @param payload Contact form data
+ * @returns Promise with messageId if successful
+ */
+export const submitContactMessage = async (
+    payload: ContactMessageRequest
+): Promise<ContactMessageResponse> => {
+    try {
+        if (!API_BASE) {
+            console.error('REACT_APP_API_BASE_URL not configured in .env.local');
+            return {
+                success: false,
+                error: 'API not configured'
+            };
+        }
+
+        const resp = await fetch(`${API_BASE}/contactMessage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await resp.json();
+
+        // Handle Lambda response format (has statusCode, headers, body)
+        if (data.statusCode && data.body && typeof data.body === 'string') {
+            return JSON.parse(data.body) as ContactMessageResponse;
+        }
+
+        return data as ContactMessageResponse;
+    } catch (err) {
+        return { success: false, error: err instanceof Error ? err.message : 'Network error' };
+    }
+};

@@ -9,16 +9,18 @@ export const Home: React.FC = () => {
     <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-20 pt-8 lg:pt-16 pb-20 min-h-[calc(100vh-140px)]">
 
       {/* Left Content */}
-      <div className="flex-1 w-full space-y-8 text-center lg:text-left z-10 flex flex-col items-center lg:items-start">
-        <h1 className="text-4xl sm:text-5xl lg:text-7xl leading-[1.1] font-bold text-brand-dark tracking-tight">
-          Turn Your Photos Into <br className="hidden lg:block" />
-          <span className="text-brand-blue">3D-Styled Cartoon Statues</span>
-        </h1>
+      <div className="flex-1 w-full space-y-6 text-center lg:text-left z-10 flex flex-col items-center lg:items-start">
+        <div className="space-y-4">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl leading-[1.1] font-bold text-brand-dark tracking-tight">
+            Turn Your Photos Into <br className="hidden lg:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-purple-500">3D-Styled Cartoon Statues</span>
+          </h1>
 
-        <p className="text-lg lg:text-xl text-brand-lightText leading-relaxed max-w-xl mx-auto lg:mx-0">
-          Upload your photo and transform it into a custom 3D-styled cartoon statue.
-          Order your personalized 3D figure today!
-        </p>
+          <p className="text-base sm:text-lg lg:text-xl text-brand-lightText leading-relaxed max-w-2xl mx-auto lg:mx-0 font-light">
+            Transform your photos into stunning custom 3D-styled cartoon statues. <br className="hidden lg:block" />
+            <span className="text-brand-text font-medium">Order your personalized 3D figure today!</span>
+          </p>
+        </div>
 
         <div className="flex flex-col gap-8 w-full max-w-md lg:max-w-none items-center lg:items-start">
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
