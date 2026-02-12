@@ -7,14 +7,8 @@ import { Model3DViewer } from '../components/Model3DViewer';
 export const Home: React.FC = () => {
   const [modelLoaded, setModelLoaded] = React.useState(false);
 
-  // Automatically load 3D model in background
-  React.useEffect(() => {
-    // Start loading the model after a short delay
-    const timer = setTimeout(() => {
-      setModelLoaded(true);
-    }, 500);
-
-    return () => clearTimeout(timer);
+  const handleModelLoaded = React.useCallback(() => {
+    setModelLoaded(true);
   }, []);
 
   return (
@@ -59,22 +53,21 @@ export const Home: React.FC = () => {
 
       {/* Right Content - Images */}
       <div className="flex-1 relative w-full flex justify-center lg:justify-end mt-12 lg:mt-0">
-        <div className="relative z-10 w-full max-w-[600px] aspect-[3/4] flex justify-center items-center">
-          {modelLoaded ? (
-            <Model3DViewer
-              modelPath="/models/anand.glb"
-              autoRotate={false}
-            />
-          ) : (
-            <div className="relative w-full h-full rounded-2xl overflow-hidden">
-              {/* Static Image - fits within frame */}
-              <img
-                src="/models/anand.png"
-                alt="3D Cartoon Statue Preview"
-                className="w-full h-full object-contain rounded-2xl"
+        <div className="relative z-10 w-full max-w-[720px] aspect-[3/4] flex justify-center items-center">
+          <div className="relative w-full h-full rounded-2xl overflow-hidden">
+            <div className={modelLoaded ? 'absolute inset-0 opacity-100 transition-opacity duration-300' : 'absolute inset-0 opacity-0 pointer-events-none transition-opacity duration-300'}>
+              <Model3DViewer
+                modelPath="/models/anand.glb"
+                autoRotate={true}
+                onModelLoaded={handleModelLoaded}
               />
             </div>
-          )}
+            <img
+              src="/models/anand.png"
+              alt="3D Cartoon Statue Preview"
+              className={modelLoaded ? 'w-full h-full object-contain rounded-2xl opacity-0 transition-opacity duration-300' : 'w-full h-full object-contain rounded-2xl opacity-100 transition-opacity duration-300'}
+            />
+          </div>
         </div>
         {/* Decorative Blob */}
         <div className="absolute top-1/2 left-1/2 lg:left-auto lg:right-0 transform -translate-x-1/2 lg:translate-x-0 -translate-y-1/2 w-[140%] h-[140%] max-w-[800px] max-h-[800px] bg-gradient-to-tr from-brand-blue/10 via-purple-50 to-white rounded-full blur-3xl -z-10 opacity-70 mix-blend-multiply"></div>

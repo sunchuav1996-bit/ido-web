@@ -1,16 +1,23 @@
 import React, { Suspense, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
-import * as THREE from 'three';
 
 interface Model3DViewerProps {
     modelPath: string;
     autoRotate?: boolean;
+    onModelLoaded?: () => void;
 }
 
-const Model: React.FC<{ path: string }> = ({ path }) => {
+const Model: React.FC<{ path: string; onLoad: () => void }> = ({ path, onLoad }) => {
     const { scene } = useGLTF(path);
-    return <primitive object={scene} />;
+
+    React.useEffect(() => {
+        if (scene) {
+            onLoad();
+        }
+    }, [scene, onLoad]);
+
+    return <primitive object={scene} scale={[1.15, 1.15, 1.15]} />;
 };
 
 // Error boundary component
@@ -41,9 +48,16 @@ class ModelErrorBoundary extends React.Component<
 
 export const Model3DViewer: React.FC<Model3DViewerProps> = ({
     modelPath,
-    autoRotate = true
+    autoRotate = true,
+    onModelLoaded
 }) => {
     const [modelError, setModelError] = useState(false);
+
+    const handleModelLoad = React.useCallback(() => {
+        if (onModelLoaded) {
+            onModelLoaded();
+        }
+    }, [onModelLoaded]);
 
     // Placeholder when model fails to load
     const fallback = (
@@ -60,7 +74,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
         <div className="w-full h-full relative">
             <ModelErrorBoundary fallback={fallback}>
                 <Canvas
-                    camera={{ position: [0, 0, 2.5], fov: 50 }}
+                    camera={{ position: [0, 0, 2.3], fov: 50 }}
                     style={{
                         width: '100%',
                         height: '100%',
@@ -75,12 +89,12 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
                         <directionalLight position={[10, 10, 10]} intensity={1} />
                         <directionalLight position={[-10, -10, -10]} intensity={0.3} />
 
-                        <Model path={modelPath} onLoad={() => setIsLoading(false)} />
+                        <Model path={modelPath} onLoad={handleModelLoad} />
 
                         <OrbitControls
                             autoRotate={autoRotate}
-                            autoRotateSpeed={2}
-                            enableZoom={true}
+                            autoRotateSpeed={0.8}
+                            enableZoom={false}
                             enablePan={true}
                             enableDamping={true}
                             dampingFactor={0.05}
