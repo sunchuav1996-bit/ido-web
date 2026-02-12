@@ -584,8 +584,17 @@ export const Order: React.FC = () => {
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-card border border-gray-100">
-              <h4 className="text-lg font-medium text-brand-dark mb-4">Final Price</h4>
-              <div className="text-4xl font-bold text-brand-dark mb-1">₹3,499 <span className="text-base font-normal text-brand-lightText">INR</span></div>
+              <div className="flex items-center gap-2 mb-4">
+                <h4 className="text-lg font-medium text-brand-dark">Final Price</h4>
+                <span className="text-xs font-semibold px-2 py-1 bg-green-100 text-green-700 rounded">Limited Offer</span>
+              </div>
+              <div className="space-y-2 mb-4">
+                <div className="text-4xl font-bold text-brand-blue">₹999 <span className="text-base font-normal text-brand-lightText">INR</span></div>
+                <div className="text-sm text-brand-lightText">
+                  <span className="line-through text-gray-400">₹3,499</span>
+                  <span className="ml-2 text-green-600 font-medium">71% OFF</span>
+                </div>
+              </div>
 
               <hr className="my-6 border-gray-100" />
 

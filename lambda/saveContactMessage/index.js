@@ -32,6 +32,38 @@ export const handler = async (event) => {
             };
         }
 
+        // Validate message length
+        const messageLength = message.trim().length;
+        if (messageLength < 10) {
+            console.log('Validation failed - message too short');
+            return {
+                statusCode: 400,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Message must be at least 10 characters long'
+                })
+            };
+        }
+
+        if (messageLength > 1000) {
+            console.log('Validation failed - message too long');
+            return {
+                statusCode: 400,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Message cannot exceed 1000 characters'
+                })
+            };
+        }
+
         const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const createdAt = new Date().toISOString();
         const tableName = process.env.CONTACT_MESSAGES_TABLE || 'ido-contact-messages';

@@ -39,6 +39,12 @@ export const Contact: React.FC = () => {
       if (phoneDigits.length < 10) return 'Phone number must be at least 10 digits';
     }
 
+    if (name === 'message') {
+      const messageLength = value.trim().length;
+      if (messageLength < 10) return 'Message must be at least 10 characters';
+      if (messageLength > 1000) return 'Message cannot exceed 1000 characters';
+    }
+
     return '';
   };
 
@@ -159,7 +165,7 @@ export const Contact: React.FC = () => {
               <h4 className="font-medium text-brand-dark mb-4">Follow us on Instagram</h4>
               <div className="flex gap-4">
                 <a
-                  href="https://instagram.com"
+                  href="https://instagram.com/idoforyou.in"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-brand-lightText hover:text-white hover:bg-gradient-to-tr hover:from-[#fdf497] hover:via-[#fd5949] hover:to-[#d6249f] transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-1"
@@ -265,12 +271,20 @@ export const Contact: React.FC = () => {
                     onChange={handleInputChange}
                     onBlur={handleBlur}
                     style={{ resize: 'none' }}
+                    maxLength={1000}
                   />
-                  {touched.message && errors.message && (
-                    <p className="text-xs text-red-500 flex items-center gap-1 mt-2 animate-fade-in">
-                      <AlertCircle className="w-3 h-3" /> {errors.message}
+                  <div className="flex justify-between items-start mt-2">
+                    <div>
+                      {touched.message && errors.message && (
+                        <p className="text-xs text-red-500 flex items-center gap-1 animate-fade-in">
+                          <AlertCircle className="w-3 h-3" /> {errors.message}
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {formData.message.length}/1000
                     </p>
-                  )}
+                  </div>
                 </div>
 
                 <Button
