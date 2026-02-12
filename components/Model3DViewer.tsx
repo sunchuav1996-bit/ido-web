@@ -8,8 +8,15 @@ interface Model3DViewerProps {
     autoRotate?: boolean;
 }
 
-const Model: React.FC<{ path: string }> = ({ path }) => {
+const Model: React.FC<{ path: string; onLoad: () => void }> = ({ path, onLoad }) => {
     const { scene } = useGLTF(path);
+
+    React.useEffect(() => {
+        if (scene) {
+            onLoad();
+        }
+    }, [scene, onLoad]);
+
     return <primitive object={scene} />;
 };
 
@@ -43,6 +50,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
     modelPath,
     autoRotate = true
 }) => {
+    const [isLoading, setIsLoading] = useState(true);
     const [modelError, setModelError] = useState(false);
 
     // Placeholder when model fails to load
@@ -51,13 +59,22 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <div className="text-center p-8">
                 <div className="text-6xl mb-4">🎭</div>
                 <p className="text-brand-lightText text-lg font-medium">3D Model Preview</p>
-                <p className="text-brand-lightText/60 text-sm mt-2">Coming soon...</p>
+                <p className="text-brand-lightText/60 text-sm mt-2">Could not load model</p>
             </div>
         </div>
     );
 
     return (
-        <div className="w-full h-full">
+        <div className="w-full h-full relative">
+            {isLoading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-br from-brand-blue/5 to-purple-50 rounded-2xl">
+                    <div className="text-center p-8">
+                        <div className="animate-spin text-5xl mb-4">⏳</div>
+                        <p className="text-brand-lightText text-lg font-medium">Loading 3D Model...</p>
+                        <p className="text-brand-lightText/60 text-sm mt-2">42MB - This may take a moment</p>
+                    </div>
+                </div>
+            )}
             <ModelErrorBoundary fallback={fallback}>
                 <Canvas
                     camera={{ position: [0, 0, 2.5], fov: 50 }}
@@ -75,7 +92,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
                         <directionalLight position={[10, 10, 10]} intensity={1} />
                         <directionalLight position={[-10, -10, -10]} intensity={0.3} />
 
-                        <Model path={modelPath} />
+                        <Model path={modelPath} onLoad={() => setIsLoading(false)} />
 
                         <OrbitControls
                             autoRotate={autoRotate}
