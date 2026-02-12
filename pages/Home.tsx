@@ -5,6 +5,8 @@ import { Button } from '../components/Button';
 import { Model3DViewer } from '../components/Model3DViewer';
 
 export const Home: React.FC = () => {
+  const [show3D, setShow3D] = React.useState(false);
+  
   return (
     <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-20 pt-8 lg:pt-16 pb-20 min-h-[calc(100vh-140px)]">
 
@@ -48,10 +50,23 @@ export const Home: React.FC = () => {
       {/* Right Content - Images */}
       <div className="flex-1 relative w-full flex justify-center lg:justify-end mt-12 lg:mt-0">
         <div className="relative z-10 w-full max-w-[600px] aspect-[3/4] flex justify-center items-center">
-          <Model3DViewer
-            modelPath="/models/anand.glb"
-            autoRotate={true}
-          />
+          {show3D ? (
+            <Model3DViewer
+              modelPath="/models/anand.glb"
+              autoRotate={true}
+            />
+          ) : (
+            <div 
+              className="relative w-full h-full bg-gradient-to-br from-brand-blue/5 to-purple-50 rounded-2xl flex items-center justify-center cursor-pointer hover:scale-105 transition-transform group"
+              onClick={() => setShow3D(true)}
+            >
+              <div className="text-center p-8">
+                <div className="text-8xl mb-4 group-hover:scale-110 transition-transform">🎭</div>
+                <p className="text-brand-text text-xl font-semibold mb-2">Click to View 3D Model</p>
+                <p className="text-brand-lightText text-sm">Interactive 360° preview</p>
+              </div>
+            </div>
+          )}
         </div>
         {/* Decorative Blob */}
         <div className="absolute top-1/2 left-1/2 lg:left-auto lg:right-0 transform -translate-x-1/2 lg:translate-x-0 -translate-y-1/2 w-[140%] h-[140%] max-w-[800px] max-h-[800px] bg-gradient-to-tr from-brand-blue/10 via-purple-50 to-white rounded-full blur-3xl -z-10 opacity-70 mix-blend-multiply"></div>
