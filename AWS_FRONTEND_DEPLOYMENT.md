@@ -436,7 +436,7 @@ set -e
 echo "🔨 Building React app..."
 npm run build
 
-echo "📤 Uploading to S3..."
+echo "📤 Uploading..."
 aws s3 sync dist/ s3://$FRONTEND_BUCKET/ \
   --delete \
   --cache-control "public, max-age=31536000" \
